@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: platform_web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DEPLOY_TARGET=docker
+      - DATABASE_URL=postgres://platform:secret@db:5432/platform_db
+      - REDIS_URL=redis://redis:6379
+      - SESSION_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      - LICENSE_MODE=offline
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: platform_worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DEPLOY_TARGET=docker
+      - DATABASE_URL=postgres://platform:secret@db:5432/platform_db
+      - REDIS_URL=redis://redis:6379
+      - LICENSE_MODE=offline
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: platform_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=platform_db
+      - POSTGRES_USER=platform
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: platform_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  redis_data:

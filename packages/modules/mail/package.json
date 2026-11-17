@@ -1,0 +1,14 @@
+{
+  "name": "@repo/module-mail",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@repo/core": "workspace:*",
+    "@repo/agent-kit": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:*"
+  }
+}

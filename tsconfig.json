@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/core": ["./packages/core/src"],
+      "@repo/core/*": ["./packages/core/src/*"],
+      "@repo/ui": ["./packages/ui/src"],
+      "@repo/ui/*": ["./packages/ui/src/*"],
+      "@repo/agent-kit": ["./packages/agent-kit/src"],
+      "@repo/agent-kit/*": ["./packages/agent-kit/src/*"],
+      "@repo/brand/*": ["./packages/brand/*"],
+      "@repo/modules/*": ["./packages/modules/*"],
+      "@repo/providers/*": ["./packages/providers/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next"]
+}
