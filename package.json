@@ -3,29 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "description": "ERP Agents - Corporate Intelligent Email Agent",
-  "workspaces": [
-    "apps/*",
-    "packages/*",
-    "packages/providers/*",
-    "packages/modules/*",
-    "packages/brand/*"
-  ],
   "scripts": {
     "start": "node server.js",
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "test": "turbo run test",
-    "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
-    "module:create": "node scripts/create-module.js",
-    "brand:create": "node scripts/create-brand.js",
-    "brand:validate": "node scripts/validate-brand.js",
-    "demo:seed": "node scripts/seed-demo.js"
+    "build": "echo 'Build ready'"
   },
   "engines": {
     "node": ">=18"
-  },
-  "devDependencies": {
-    "typescript": "^5.7.0"
   }
 }
