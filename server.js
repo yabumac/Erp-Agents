@@ -71,9 +71,10 @@ function parseCsvContent(csvText) {
 }
 
 // Render Corporate HTML Interface (No Emojis, No Blinkers, Pure Corporate)
-function renderCorporateUi() {
+function renderCorporateUi(req) {
   const brand = BrandConfig;
   const auth = Gmail.getStoredAuth();
+  const redirectUri = Gmail.getRedirectUri(req);
   const isGoogleConnected = Boolean(auth.refreshToken || (auth.accessToken && auth.tokenExpiresAt > Date.now()));
 
   return `<!DOCTYPE html>
@@ -490,7 +491,7 @@ function renderCorporateUi() {
               </div>
 
               <div class="flex items-center justify-between pt-1">
-                <span class="text-[11px] text-slate-400">Authorized Redirect URI: <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">${Gmail.getStoredAuth() ? 'http://localhost:3002/api/auth/callback' : ''}</code></span>
+                <span class="text-[11px] text-slate-400">Authorized Redirect URI: <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">${redirectUri}</code></span>
                 <button type="submit" class="px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800">
                   Save Credentials
                 </button>
@@ -976,12 +977,27 @@ function renderCorporateUi() {
       window.location.reload();
     }
 
+    async function checkAuthStatus() {
+      try {
+        const res = await fetch('/api/auth/status');
+        const data = await res.json();
+        if (data.isGoogleConnected) {
+          document.getElementById('google-auth-banner').classList.add('hidden');
+          document.getElementById('google-connection-status').innerText = 'Gmail Synchronized';
+        } else if (data.hasClientId) {
+          document.getElementById('connect-credentials-missing').classList.add('hidden');
+          document.getElementById('connect-ready').classList.remove('hidden');
+        }
+      } catch (e) {}
+    }
+
     async function loadState() {
       const res = await fetch('/api/state');
       appState = await res.json();
       renderThreads();
       renderContacts();
       renderSentMessages();
+      await checkAuthStatus();
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -1031,6 +1047,19 @@ async function handleRequest(req, res) {
   if (pathname === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ status: 'ok', email: 'yabutech47@gmail.com' }));
+  }
+
+  // 1b. Auth Status Diagnostics
+  if (pathname === '/api/auth/status') {
+    const auth = Gmail.getStoredAuth();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      hasClientId: Boolean(auth.clientId),
+      hasClientSecret: Boolean(auth.clientSecret),
+      hasRefreshToken: Boolean(auth.refreshToken),
+      isGoogleConnected: Boolean(auth.refreshToken || (auth.accessToken && auth.tokenExpiresAt > Date.now())),
+      email: auth.email
+    }));
   }
 
   // 2. Google OAuth Start
@@ -1336,7 +1365,7 @@ async function handleRequest(req, res) {
   // 17. Root View
   if (pathname === '/' || pathname === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    return res.end(renderCorporateUi());
+    return res.end(renderCorporateUi(req));
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });
