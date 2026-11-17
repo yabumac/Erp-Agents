@@ -985,6 +985,11 @@ function renderCorporateUi() {
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam && ['inbox', 'campaigns', 'compose', 'sent', 'settings'].includes(tabParam)) {
+        switchTab(tabParam);
+      }
       await loadState();
       // Auto-sync real emails if authenticated
       await syncGmail();
@@ -996,8 +1001,30 @@ function renderCorporateUi() {
 
 // Request Handler
 async function handleRequest(req, res) {
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
+  // Determine actual requested path (supports direct requests and Vercel rewrites)
+  let requestPath = req.url || '/';
+  if (req.headers['x-matched-path'] && req.headers['x-matched-path'] !== '/api/index.js' && req.headers['x-matched-path'] !== '/api/index') {
+    requestPath = req.headers['x-matched-path'];
+  } else if (req.headers['x-forwarded-uri']) {
+    requestPath = req.headers['x-forwarded-uri'];
+  }
+
+  const parsedUrl = url.parse(requestPath, true);
+  const originalParsed = url.parse(req.url || '/', true);
+  let pathname = parsedUrl.pathname || '/';
+
+  // Normalize root path & trailing slashes
+  if (pathname === '/api/index.js' || pathname === '/api/index') {
+    pathname = '/';
+  } else if (pathname.length > 1 && pathname.endsWith('/')) {
+    pathname = pathname.slice(0, -1);
+  }
+
+  // Merge query parameters from both original URL and rewritten URL
+  const query = {
+    ...originalParsed.query,
+    ...parsedUrl.query
+  };
   const method = req.method;
 
   // 1. Health
@@ -1010,8 +1037,22 @@ async function handleRequest(req, res) {
   if (pathname === '/api/auth/login') {
     const authData = Gmail.getAuthUrl(req);
     if (!authData) {
-      res.writeHead(400, { 'Content-Type': 'text/plain' });
-      return res.end('Google Client ID not configured. Please enter your Client ID in Settings.');
+      res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"><title>Google Client ID Required</title><script src="https://cdn.tailwindcss.com"></script></head>
+        <body class="bg-slate-50 flex items-center justify-center h-screen p-4 font-sans text-sm">
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-md w-full space-y-3 text-center">
+            <h2 class="font-bold text-base text-slate-900">Google Client ID Required</h2>
+            <p class="text-xs text-slate-500">To enable sign-in on this deployment, add your GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Vercel Environment Variables, or enter them in Settings.</p>
+            <div class="pt-2">
+              <a href="/?tab=settings" class="inline-block px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800">Go to Settings</a>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
     }
     res.writeHead(302, {
       Location: authData.url,
@@ -1022,7 +1063,7 @@ async function handleRequest(req, res) {
 
   // 3. Google OAuth Callback
   if (pathname === '/api/auth/callback') {
-    const { code, state, error } = parsedUrl.query;
+    const { code, state, error } = query;
     if (error) {
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       return res.end('Google authentication error: ' + error);
