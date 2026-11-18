@@ -72,16 +72,25 @@ const BrandConfig = {
 
           <!-- Corporate Brand Header -->
           <tr>
-            <td style="padding: 28px 36px 20px 36px; border-b: 1px solid #f1f5f9;">
+            <td style="padding: 24px 36px 18px 36px; border-b: 1px solid #f1f5f9;">
               <table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
                 <tr>
                   <td align="left" valign="middle">
-                    <span style="font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
-                      ${brand.companyName}
-                    </span>
-                    <span style="display: block; font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;">
-                      Enterprise Intelligent Mail
-                    </span>
+                    <table border="0" cellpadding="0" cellspacing="0" role="presentation">
+                      <tr>
+                        <td valign="middle" style="padding-right: 12px;">
+                          <img src="https://erp-agents.vercel.app/logo.png" alt="${brand.companyName}" width="42" height="42" style="display: block; width: 42px; height: 42px; border-radius: 50%; border: 1px solid #e2e8f0; object-fit: contain;" />
+                        </td>
+                        <td valign="middle">
+                          <span style="font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; display: block;">
+                            ${brand.companyName}
+                          </span>
+                          <span style="display: block; font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;">
+                            Enterprise Intelligent Mail
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                   <td align="right" valign="middle">
                     <span style="display: inline-block; padding: 4px 10px; background-color: #eff6ff; color: ${brand.primaryColor}; border-radius: 20px; font-size: 11px; font-weight: 600;">
@@ -112,9 +121,7 @@ const BrandConfig = {
                 <table border="0" cellpadding="0" cellspacing="0" role="presentation">
                   <tr>
                     <td style="vertical-align: top; padding-right: 14px;">
-                      <div style="width: 44px; height: 44px; border-radius: 50%; background-color: ${brand.primaryColor}; color: #ffffff; font-weight: bold; font-size: 16px; text-align: center; line-height: 44px;">
-                        Y
-                      </div>
+                      <img src="https://erp-agents.vercel.app/logo.png" alt="${brand.senderName}" width="44" height="44" style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid #cbd5e1; display: block; object-fit: contain;" />
                     </td>
                     <td style="vertical-align: middle;">
                       <div style="font-weight: 700; font-size: 14px; color: #0f172a;">${brand.senderName}</div>

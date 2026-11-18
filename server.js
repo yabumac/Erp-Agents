@@ -76,6 +76,38 @@ function renderCorporateUi(req) {
   const auth = Gmail.getStoredAuth();
   const redirectUri = Gmail.getRedirectUri(req);
   const isGoogleConnected = Boolean(auth.refreshToken || (auth.accessToken && auth.tokenExpiresAt > Date.now()));
+  const state = Storage.loadState();
+  const rawThreads = (state && Array.isArray(state.threads)) ? state.threads : [];
+  const initialThreads = rawThreads.map(t => ({
+    id: t.id,
+    messageId: t.messageId || t.id,
+    from: t.from,
+    senderName: t.senderName,
+    subject: t.subject,
+    snippet: t.snippet || '',
+    body: (t.body && t.body.length < 500) ? t.body : (t.snippet || ''),
+    date: t.date,
+    rawDate: t.rawDate,
+    status: t.status || 'unread'
+  }));
+  const initialContacts = (state && Array.isArray(state.contacts)) ? state.contacts : [];
+  const initialSent = (state && Array.isArray(state.sentMessages)) ? state.sentMessages : [];
+
+  const preRenderedThreadsHtml = initialThreads.length > 0 ? initialThreads.map(t => `
+    <div onclick="selectThread('${t.id}')" class="p-3 hover:bg-slate-50 cursor-pointer transition">
+      <div class="flex items-center justify-between mb-0.5">
+        <span class="font-bold text-xs text-slate-900 truncate max-w-[190px]">${t.senderName || t.from}</span>
+        <span class="text-[10px] text-slate-400 font-mono">${t.date}</span>
+      </div>
+      <p class="font-medium text-xs text-slate-800 truncate">${t.subject}</p>
+      <p class="text-[11px] text-slate-500 truncate mt-0.5">${t.snippet || ''}</p>
+    </div>
+  `).join('') : `
+    <div class="p-8 text-center text-xs text-slate-400 space-y-2">
+      <p class="font-medium text-slate-600">No messages in inbox.</p>
+      <p>Click "Sync Inbox" to pull real emails from Gmail.</p>
+    </div>
+  `;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -83,6 +115,7 @@ function renderCorporateUi(req) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${brand.companyName} - Corporate Mail Platform</title>
+  <link rel="icon" type="image/png" href="/logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -97,9 +130,7 @@ function renderCorporateUi(req) {
       <!-- Corporate Header -->
       <div class="p-4 border-b border-slate-200">
         <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
-            ${brand.companyName.charAt(0)}
-          </div>
+          <img src="/logo.png" alt="EdTech" class="w-9 h-9 rounded-full object-contain border border-slate-200 bg-white p-0.5 shrink-0 shadow-xs" onerror="this.onerror=null;this.src='/logo.jpg';" />
           <div class="overflow-hidden">
             <h1 class="font-bold text-sm text-slate-900 leading-tight">${brand.companyName}</h1>
             <p class="text-xs text-slate-500">Corporate Mail System</p>
@@ -130,12 +161,12 @@ function renderCorporateUi(req) {
       <nav class="p-3 space-y-1">
         <button onclick="switchTab('inbox')" id="nav-inbox" class="w-full flex items-center justify-between px-3 py-2 rounded-lg tab-active hover:bg-slate-100 transition text-left">
           <span class="font-medium text-xs">Inbox & Triage</span>
-          <span class="text-xs font-mono font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-800" id="badge-inbox-count">0</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-800" id="badge-inbox-count">${initialThreads.length}</span>
         </button>
 
         <button onclick="switchTab('campaigns')" id="nav-campaigns" class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
           <span class="font-medium text-xs">Bulk Campaigns</span>
-          <span class="text-xs font-mono text-slate-400" id="badge-contacts-count">0</span>
+          <span class="text-xs font-mono text-slate-400" id="badge-contacts-count">${initialContacts.length}</span>
         </button>
 
         <button onclick="switchTab('compose')" id="nav-compose" class="w-full flex items-center px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
@@ -144,7 +175,7 @@ function renderCorporateUi(req) {
 
         <button onclick="switchTab('sent')" id="nav-sent" class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
           <span class="font-medium text-xs">Sent Log</span>
-          <span class="text-xs font-mono text-slate-400" id="badge-sent-count">0</span>
+          <span class="text-xs font-mono text-slate-400" id="badge-sent-count">${initialSent.length}</span>
         </button>
 
         <button onclick="switchTab('settings')" id="nav-settings" class="w-full flex items-center px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
@@ -204,7 +235,7 @@ function renderCorporateUi(req) {
             <h2 class="font-bold text-base text-slate-900">Incoming Messages</h2>
             <p class="text-xs text-slate-500">Select an email to view full details. The AI agent automatically drafts a suggested response ready for editing and dispatch.</p>
           </div>
-          <span class="text-xs font-medium text-slate-500 font-mono" id="inbox-count-label">0 Messages</span>
+          <span class="text-xs font-medium text-slate-500 font-mono" id="inbox-count-label">${initialThreads.length} Messages</span>
         </div>
 
         <!-- Master-Detail Inbox View -->
@@ -218,7 +249,7 @@ function renderCorporateUi(req) {
             </div>
             
             <div class="divide-y divide-slate-100 max-h-[620px] overflow-y-auto" id="threads-container">
-              <div class="p-8 text-center text-xs text-slate-400">Loading mailbox...</div>
+              ${preRenderedThreadsHtml}
             </div>
           </div>
 
@@ -561,7 +592,7 @@ function renderCorporateUi(req) {
   </div>
 
   <script>
-    let appState = { threads: [], contacts: [], sentMessages: [] };
+    let appState = ${JSON.stringify({ threads: initialThreads, contacts: initialContacts, sentMessages: initialSent })};
     let activeThread = null;
 
     function switchTab(tabId) {
@@ -588,22 +619,27 @@ function renderCorporateUi(req) {
 
     async function syncGmail() {
       const btn = document.getElementById('btn-sync-top');
-      btn.innerText = 'Syncing...';
+      if (btn) btn.innerText = 'Syncing...';
       try {
         const res = await fetch('/api/inbox/sync', { method: 'POST' });
+        if (!res.ok) throw new Error('Status ' + res.status);
         const data = await res.json();
         if (!data.authenticated) {
-          document.getElementById('google-auth-banner').classList.remove('hidden');
-          document.getElementById('google-connection-status').innerText = 'Google Authorization Required';
+          const banner = document.getElementById('google-auth-banner');
+          if (banner) banner.classList.remove('hidden');
+          const connStatus = document.getElementById('google-connection-status');
+          if (connStatus) connStatus.innerText = 'Google Authorization Required';
         } else {
-          document.getElementById('google-auth-banner').classList.add('hidden');
-          document.getElementById('google-connection-status').innerText = 'Gmail Synchronized';
+          const banner = document.getElementById('google-auth-banner');
+          if (banner) banner.classList.add('hidden');
+          const connStatus = document.getElementById('google-connection-status');
+          if (connStatus) connStatus.innerText = 'Gmail Synchronized';
         }
         await loadState();
       } catch (err) {
-        alert('Sync error: ' + err.message);
+        console.warn('Sync notice:', err.message);
       } finally {
-        btn.innerText = 'Sync Inbox';
+        if (btn) btn.innerText = 'Sync Inbox';
       }
     }
 
@@ -652,20 +688,39 @@ function renderCorporateUi(req) {
       document.getElementById('view-date').innerText = activeThread.date;
       document.getElementById('view-body').innerText = activeThread.body || activeThread.snippet;
 
+      // On-demand fetch of full decoded thread body if not already loaded
+      if (!activeThread.fullBodyLoaded) {
+        fetch('/api/inbox/thread-detail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ threadId: activeThread.id })
+        }).then(r => r.json()).then(detail => {
+          if (detail && detail.body && activeThread && activeThread.id === id) {
+            activeThread.body = detail.body;
+            activeThread.fullBodyLoaded = true;
+            document.getElementById('view-body').innerText = detail.body;
+          }
+        }).catch(() => {});
+      }
+
       // Automated AI Suggested Response loaded immediately on click
       const replyBox = document.getElementById('reply-text');
       if (activeThread.suggestedReply) {
         replyBox.value = activeThread.suggestedReply;
       } else {
         replyBox.value = 'Analyzing incoming message and generating suggested response...';
-        const res = await fetch('/api/inbox/suggest-reply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ threadId: activeThread.id })
-        });
-        const data = await res.json();
-        replyBox.value = data.suggestedReply;
-        activeThread.suggestedReply = data.suggestedReply;
+        try {
+          const res = await fetch('/api/inbox/suggest-reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ threadId: activeThread.id })
+          });
+          const data = await res.json();
+          replyBox.value = data.suggestedReply || '';
+          activeThread.suggestedReply = data.suggestedReply;
+        } catch (e) {
+          replyBox.value = 'Failed to generate automated response. You can type your response manually.';
+        }
       }
     }
 
@@ -992,11 +1047,20 @@ function renderCorporateUi(req) {
     }
 
     async function loadState() {
-      const res = await fetch('/api/state');
-      appState = await res.json();
-      renderThreads();
-      renderContacts();
-      renderSentMessages();
+      try {
+        const res = await fetch('/api/state');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.threads)) {
+            appState = data;
+            renderThreads();
+            renderContacts();
+            renderSentMessages();
+          }
+        }
+      } catch (e) {
+        console.warn('State sync notice:', e.message);
+      }
       await checkAuthStatus();
     }
 
@@ -1043,6 +1107,19 @@ async function handleRequest(req, res) {
     ...parsedUrl.query
   };
   const method = req.method;
+
+  // Static Brand Logo
+  if (pathname === '/logo.png' || pathname === '/logo.jpg') {
+    const filePath = path.join(__dirname, 'public', pathname.endsWith('.jpg') ? 'logo.jpg' : 'logo.png');
+    if (fs.existsSync(filePath)) {
+      const img = fs.readFileSync(filePath);
+      res.writeHead(200, {
+        'Content-Type': pathname.endsWith('.jpg') ? 'image/jpeg' : 'image/png',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return res.end(img);
+    }
+  }
 
   // 1. Health
   if (pathname === '/api/health') {
@@ -1158,6 +1235,18 @@ async function handleRequest(req, res) {
       error: gmailResult.error,
       threadsCount: state.threads.length
     }));
+  }
+
+  // 7b. Fetch Thread Detail
+  if (pathname === '/api/inbox/thread-detail' && method === 'POST') {
+    const data = await parseBody(req);
+    if (!data.threadId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Thread ID required' }));
+    }
+    const detail = await Gmail.fetchThreadDetail(data.threadId);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(detail || {}));
   }
 
   // 8. Suggest Reply for Thread
