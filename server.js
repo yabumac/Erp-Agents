@@ -1017,8 +1017,9 @@ function renderCorporateUi(req) {
 
 // Request Handler
 async function handleRequest(req, res) {
-  // Determine actual requested path (supports direct requests and Vercel rewrites)
-  let requestPath = req.url || '/';
+  try {
+    // Determine actual requested path (supports direct requests and Vercel rewrites)
+    let requestPath = req.url || '/';
   if (req.headers['x-matched-path'] && req.headers['x-matched-path'] !== '/api/index.js' && req.headers['x-matched-path'] !== '/api/index') {
     requestPath = req.headers['x-matched-path'];
   } else if (req.headers['x-forwarded-uri']) {
@@ -1368,8 +1369,29 @@ async function handleRequest(req, res) {
     return res.end(renderCorporateUi(req));
   }
 
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
-  res.end('Not Found');
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  } catch (err) {
+    console.error('Unhandled request error:', err);
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"><title>Application Error</title><script src="https://cdn.tailwindcss.com"></script></head>
+        <body class="bg-slate-50 flex items-center justify-center h-screen p-4 font-sans text-sm">
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-md w-full space-y-3 text-center">
+            <h2 class="font-bold text-base text-slate-900">Application Notice</h2>
+            <p class="text-xs text-slate-600">${(err && err.message) || 'An error occurred during execution.'}</p>
+            <div class="pt-2">
+              <a href="/" class="inline-block px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800">Reload Application</a>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+  }
 }
 
 // HTTP Server
