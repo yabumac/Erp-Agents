@@ -1082,31 +1082,25 @@ function renderCorporateUi(req) {
 // Request Handler
 async function handleRequest(req, res) {
   try {
-    // Determine actual requested path (supports direct requests and Vercel rewrites)
-    let requestPath = req.url || '/';
-  if (req.headers['x-matched-path'] && req.headers['x-matched-path'] !== '/api/index.js' && req.headers['x-matched-path'] !== '/api/index') {
-    requestPath = req.headers['x-matched-path'];
-  } else if (req.headers['x-forwarded-uri']) {
-    requestPath = req.headers['x-forwarded-uri'];
-  }
+    const originalParsed = url.parse(req.url || '/', true);
+    let requestPath = originalParsed.query.__path || req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || originalParsed.pathname || '/';
 
-  const parsedUrl = url.parse(requestPath, true);
-  const originalParsed = url.parse(req.url || '/', true);
-  let pathname = parsedUrl.pathname || '/';
+    // Normalize root path & trailing slashes
+    if (requestPath === '/api/index.js' || requestPath === '/api/index') {
+      requestPath = '/';
+    } else if (requestPath.length > 1 && requestPath.endsWith('/')) {
+      requestPath = requestPath.slice(0, -1);
+    }
 
-  // Normalize root path & trailing slashes
-  if (pathname === '/api/index.js' || pathname === '/api/index') {
-    pathname = '/';
-  } else if (pathname.length > 1 && pathname.endsWith('/')) {
-    pathname = pathname.slice(0, -1);
-  }
+    const parsedUrl = url.parse(requestPath, true);
+    let pathname = parsedUrl.pathname || '/';
 
-  // Merge query parameters from both original URL and rewritten URL
-  const query = {
-    ...originalParsed.query,
-    ...parsedUrl.query
-  };
-  const method = req.method;
+    const query = {
+      ...originalParsed.query,
+      ...parsedUrl.query
+    };
+    delete query.__path;
+    const method = req.method;
 
   // Static Brand Logo
   if (pathname === '/logo.png' || pathname === '/logo.jpg') {
