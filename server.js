@@ -274,8 +274,17 @@ function renderCorporateUi(req) {
                 <span class="text-xs text-slate-400 font-mono" id="view-date">Date</span>
               </div>
 
-              <!-- Message Body -->
-              <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap max-h-48 overflow-y-auto font-sans leading-relaxed" id="view-body"></div>
+              <!-- Email Message Preview Pane (Visual Rendered View) -->
+              <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                <div class="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                  <div class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span class="font-bold text-xs text-slate-800 uppercase tracking-wide">Email Content Preview</span>
+                  </div>
+                  <span class="text-[11px] text-slate-500 font-mono" id="view-preview-status">Visual Render</span>
+                </div>
+                <iframe id="view-email-frame" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin" class="w-full h-80 border-0 bg-white"></iframe>
+              </div>
 
               <!-- Automated AI Response Box -->
               <div class="bg-blue-50/50 rounded-xl border border-blue-200 p-4 space-y-3">
@@ -320,84 +329,118 @@ function renderCorporateUi(req) {
 
       <!-- ================= 2. BULK CAMPAIGNS TAB ================= -->
       <section id="tab-campaigns" class="hidden space-y-6">
-        <div>
-          <h2 class="font-bold text-base text-slate-900">Bulk Campaigns</h2>
-          <p class="text-xs text-slate-500">Import your contacts CSV, generate structured corporate copy with AI assistance, and dispatch batch deliveries.</p>
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-bold text-base text-slate-900">Bulk Campaigns</h2>
+            <p class="text-xs text-slate-500">Import your contacts CSV, draft structured corporate copy with real-time live preview, and dispatch batch deliveries.</p>
+          </div>
         </div>
 
-        <div class="grid grid-cols-12 gap-6 items-start">
+        <!-- Row 1: CSV Management (6 cols) & AI Copywriting Assistant (6 cols) -->
+        <div class="grid grid-cols-12 gap-5 items-start">
           
-          <!-- CSV Upload Column -->
-          <div class="col-span-5 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Contacts CSV</h3>
-              <span class="text-xs font-mono font-bold text-blue-700" id="csv-loaded-count">0 Contacts</span>
+          <!-- Contacts CSV Card (6 cols) -->
+          <div class="col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3.5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div>
+                <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Contacts CSV</h3>
+                <span class="text-[11px] text-slate-400">Supported columns: email, name, company, role</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button onclick="downloadSampleCsv()" class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition flex items-center space-x-1.5 shadow-2xs">
+                  <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                  <span>Download Sample CSV</span>
+                </button>
+                <span class="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200" id="csv-loaded-count">0 Contacts</span>
+              </div>
             </div>
 
-            <!-- Upload Area -->
-            <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-slate-400 transition cursor-pointer bg-slate-50/50" onclick="document.getElementById('csv-file-input').click()">
+            <!-- Upload Dropzone -->
+            <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-slate-400 transition cursor-pointer bg-slate-50/50" onclick="document.getElementById('csv-file-input').click()">
               <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCsvUpload(event)">
-              <p class="font-semibold text-xs text-slate-700">Select or drop CSV file</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">Columns recognized: email, name, company, role</p>
+              <p class="font-semibold text-xs text-slate-700">Click to upload or drop your contacts CSV</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Need a reference file? Use the "Download Sample CSV" button above.</p>
             </div>
 
             <!-- Audience List -->
-            <div class="space-y-2">
+            <div class="space-y-1.5">
               <div class="flex items-center justify-between text-xs font-semibold text-slate-600">
                 <span>Loaded Audience</span>
-                <button onclick="clearContacts()" class="text-rose-600 hover:underline font-normal">Clear</button>
+                <button onclick="clearContacts()" class="text-rose-600 hover:underline font-normal text-xs">Clear All</button>
               </div>
-              <div class="bg-slate-50 rounded-lg border border-slate-200 max-h-60 overflow-y-auto divide-y divide-slate-100" id="contacts-table-body">
-                <div class="p-4 text-center text-xs text-slate-400">No contacts loaded.</div>
+              <div class="bg-slate-50 rounded-lg border border-slate-200 max-h-36 overflow-y-auto divide-y divide-slate-100" id="contacts-table-body">
+                <div class="p-3 text-center text-xs text-slate-400">No contacts loaded.</div>
               </div>
             </div>
           </div>
 
-          <!-- Campaign Form Column -->
-          <div class="col-span-7 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-            <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide border-b border-slate-100 pb-2">Campaign Content</h3>
-
-            <div class="space-y-1">
-              <label class="block text-xs font-semibold text-slate-700">Campaign Objective / Rough Message</label>
-              <textarea id="campaign-prompt" rows="3" class="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-sans" placeholder="Enter the core message or announcement topic..."></textarea>
+          <!-- AI Assistant Card (6 cols) -->
+          <div class="col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3.5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div>
+                <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">AI Copywriting Assistant</h3>
+                <span class="text-[11px] text-slate-400">Generates executive-grade corporate campaign copy</span>
+              </div>
+              <span class="text-xs text-slate-500 font-mono">Tags: {{name}}, {{company}}</span>
             </div>
 
-            <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-              <span class="text-xs text-slate-500 font-mono">Tags: {{name}}, {{company}}</span>
-              <button onclick="generateCampaignWithAi()" id="btn-generate-campaign" class="px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800 transition">
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-700">Campaign Objective / Core Announcement</label>
+              <textarea id="campaign-prompt" rows="3" class="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-sans" placeholder="e.g. Announcing our new enterprise STEM curriculum partnership with secondary schools..."></textarea>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <span class="text-[11px] text-slate-500">Drafted content will auto-populate and update the live preview below.</span>
+              <button onclick="generateCampaignWithAi()" id="btn-generate-campaign" class="px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition shadow-2xs">
                 Generate Corporate Copy
               </button>
             </div>
+          </div>
 
-            <div class="space-y-3 pt-1">
+        </div>
+
+        <!-- Row 2: Campaign Editor Form (6 cols) & Live Real-Time Email Preview (6 cols) -->
+        <div class="grid grid-cols-12 gap-5 items-start">
+          
+          <!-- Campaign Content Editor Form (6 cols) -->
+          <div class="col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Campaign Content</h3>
+              <span class="text-[11px] text-slate-400">Edits update the preview in real time</span>
+            </div>
+
+            <div class="space-y-3">
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Subject Line</label>
-                <input type="text" id="campaign-subject" class="w-full p-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-medium">
+                <input type="text" id="campaign-subject" oninput="updateCampaignLivePreview()" placeholder="Enter campaign subject line..." class="w-full p-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-medium">
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Email Body Content</label>
-                <textarea id="campaign-body" rows="7" class="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-sans leading-relaxed"></textarea>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-semibold text-slate-700">Email Body Content</label>
+                  <span class="text-[11px] text-slate-400 font-mono">Supports {{name}}, {{company}}</span>
+                </div>
+                <textarea id="campaign-body" rows="9" oninput="updateCampaignLivePreview()" placeholder="Compose your email body here. Double line breaks create paragraphs." class="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-sans leading-relaxed"></textarea>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 mb-1">Action Button Text</label>
-                  <input type="text" id="campaign-cta-text" value="Learn More" class="w-full p-2 border border-slate-300 rounded-lg text-xs outline-none">
+                  <input type="text" id="campaign-cta-text" oninput="updateCampaignLivePreview()" value="Learn More" class="w-full p-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-medium">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 mb-1">Action Button URL</label>
-                  <input type="text" id="campaign-cta-url" value="${brand.website}" class="w-full p-2 border border-slate-300 rounded-lg text-xs outline-none">
+                  <input type="text" id="campaign-cta-url" oninput="updateCampaignLivePreview()" value="${brand.website}" class="w-full p-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-600 font-mono text-[11px]">
                 </div>
               </div>
             </div>
 
             <div class="flex items-center justify-between border-t border-slate-100 pt-3">
               <button onclick="previewCorporateHtml('campaign')" class="text-xs font-semibold text-blue-700 hover:underline">
-                Preview Corporate HTML
+                Fullscreen Preview
               </button>
 
-              <button onclick="sendBulkCampaign()" id="btn-send-bulk" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition">
+              <button onclick="sendBulkCampaign()" id="btn-send-bulk" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition shadow-sm">
                 Dispatch Campaign
               </button>
             </div>
@@ -412,7 +455,31 @@ function renderCorporateUi(req) {
                 <div id="progress-fill" class="bg-blue-600 h-1.5 transition-all duration-200" style="width: 0%"></div>
               </div>
             </div>
+          </div>
 
+          <!-- Live Real-Time Email Preview (6 cols) -->
+          <div class="col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Live Email Preview</h3>
+              </div>
+              <div class="flex items-center space-x-2">
+                <label for="campaign-preview-contact-select" class="text-[11px] text-slate-500 font-medium">Previewing For:</label>
+                <select id="campaign-preview-contact-select" onchange="updateCampaignLivePreview()" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none max-w-[210px] truncate font-medium">
+                  <option value="">Alex Morgan (SchoolHub Academy)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="bg-slate-100 p-2 rounded-xl border border-slate-200">
+              <iframe id="campaign-live-frame" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin" class="w-full h-[520px] rounded-lg border border-slate-200 bg-white shadow-xs"></iframe>
+            </div>
+
+            <div class="flex items-center justify-between text-[11px] text-slate-400">
+              <span>Preview reflects live changes in real time</span>
+              <span class="font-mono">Recipient tags resolved</span>
+            </div>
           </div>
 
         </div>
@@ -615,6 +682,10 @@ function renderCorporateUi(req) {
         settings: 'Settings & Integration'
       };
       document.getElementById('header-view-title').innerText = titles[tabId] || 'Mail Platform';
+
+      if (tabId === 'campaigns') {
+        setTimeout(updateCampaignLivePreview, 50);
+      }
     }
 
     async function syncGmail() {
@@ -673,6 +744,58 @@ function renderCorporateUi(req) {
       \`).join('');
     }
 
+    function renderEmailPreview(rawContent) {
+      const frame = document.getElementById('view-email-frame');
+      const statusLabel = document.getElementById('view-preview-status');
+      if (!frame) return;
+
+      if (!rawContent || !rawContent.trim()) {
+        if (statusLabel) statusLabel.innerText = 'Empty Message';
+        frame.srcdoc = '<!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif;color:#94a3b8;font-size:12px;padding:20px;text-align:center;">No message content available.</body></html>';
+        return;
+      }
+
+      const isHtml = /<[a-z][\s\S]*>/i.test(rawContent);
+      if (statusLabel) statusLabel.innerText = isHtml ? 'Visual Render' : 'Plain Text';
+
+      if (isHtml) {
+        const baseStyle = \`
+          <style>
+            html, body { margin: 0; padding: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #1e293b; background: #ffffff; word-break: break-word; }
+            img { max-width: 100% !important; height: auto !important; }
+            table { max-width: 100% !important; }
+            a { color: #1d4ed8; text-decoration: underline; }
+          </style>
+        \`;
+
+        let html = rawContent;
+        if (/<head[\s>]/i.test(html)) {
+          html = html.replace(/<head[\s>]/i, match => match + baseStyle);
+        } else if (/<html[\s>]/i.test(html)) {
+          html = html.replace(/<html[\s>]/i, match => match + '<head>' + baseStyle + '</head>');
+        } else {
+          html = '<!DOCTYPE html><html><head>' + baseStyle + '</head><body>' + html + '</body></html>';
+        }
+        frame.srcdoc = html;
+      } else {
+        const escaped = rawContent
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        frame.srcdoc = \`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #334155; white-space: pre-wrap; word-break: break-word; background: #ffffff; }
+            </style>
+          </head>
+          <body>\${escaped}</body>
+          </html>
+        \`;
+      }
+    }
+
     async function selectThread(id) {
       activeThread = appState.threads.find(t => t.id === id);
       if (!activeThread) return;
@@ -686,7 +809,9 @@ function renderCorporateUi(req) {
       document.getElementById('view-sender-name').innerText = activeThread.senderName || activeThread.from;
       document.getElementById('view-sender-email').innerText = '<' + activeThread.from + '>';
       document.getElementById('view-date').innerText = activeThread.date;
-      document.getElementById('view-body').innerText = activeThread.body || activeThread.snippet;
+
+      // Render the visual preview inside the sandboxed iframe (no raw HTML code)
+      renderEmailPreview(activeThread.body || activeThread.snippet);
 
       // On-demand fetch of full decoded thread body if not already loaded
       if (!activeThread.fullBodyLoaded) {
@@ -698,7 +823,7 @@ function renderCorporateUi(req) {
           if (detail && detail.body && activeThread && activeThread.id === id) {
             activeThread.body = detail.body;
             activeThread.fullBodyLoaded = true;
-            document.getElementById('view-body').innerText = detail.body;
+            renderEmailPreview(detail.body);
           }
         }).catch(() => {});
       }
@@ -798,16 +923,210 @@ function renderCorporateUi(req) {
       reader.readAsText(file);
     }
 
+    function downloadSampleCsv() {
+      const sampleText = "email,name,company,role\n" +
+        "alex.morgan@schoolhub.edu,Alex Morgan,SchoolHub Academy,Academic Director\n" +
+        "sarah.chen@edulearn.org,Sarah Chen,EduLearn Global,Curriculum Coordinator\n" +
+        "david.kim@innovateedu.com,David Kim,InnovateEdu Institute,Head of Technology\n" +
+        "elena.rostova@globalstem.ac,Elena Rostova,Global STEM Initiative,Partnerships Lead\n" +
+        "michael.brown@edutechpartners.com,Michael Brown,EdTech Partners,Director of Operations\n";
+
+      try {
+        const blob = new Blob([sampleText], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'sample_contacts.csv';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 150);
+      } catch (err) {
+        window.location.href = '/api/campaigns/sample-csv';
+      }
+    }
+
+    function buildCorporatePreviewHtml(data) {
+      const brandName = "EdTechHub";
+      const primaryColor = "#1e40af";
+      const senderName = "Yabsera";
+      const senderTitle = "Tech Lead";
+      const senderEmail = "yabutech47@gmail.com";
+      const website = "https://edtechhub.et";
+      const location = "Addis Ababa, Ethiopia";
+
+      let formattedBody = data.bodyContent || 'Your campaign message will appear here...';
+      if (!formattedBody.includes('<p>') && !formattedBody.includes('<div>')) {
+        formattedBody = formattedBody
+          .split('\n\n')
+          .map(p => '<p style="margin: 0 0 16px 0; line-height: 1.6; color: #334155; font-size: 14px;">' + p.replace(/\n/g, '<br>') + '</p>')
+          .join('');
+      }
+
+      const ctaButton = (data.ctaText && data.ctaUrl) ? \`
+        <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 22px 0;">
+          <tr>
+            <td align="left" style="border-radius: 6px;" bgcolor="\${primaryColor}">
+              <a href="\${data.ctaUrl}" target="_blank" style="font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-weight: 600; color: #ffffff; text-decoration: none; display: inline-block; padding: 11px 22px; border-radius: 6px; letter-spacing: 0.2px;">
+                \${data.ctaText} &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+      \` : '';
+
+      return \`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>\${data.subject || brandName}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" style="background-color: #f8fafc; padding: 16px 8px;">
+    <tr>
+      <td align="center">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); overflow: hidden;" role="presentation">
+          <tr>
+            <td height="4" style="background-color: \${primaryColor}; line-height: 4px; font-size: 4px;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding: 18px 24px 14px 24px; border-bottom: 1px solid #f1f5f9;">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
+                <tr>
+                  <td align="left" valign="middle">
+                    <table border="0" cellpadding="0" cellspacing="0" role="presentation">
+                      <tr>
+                        <td valign="middle" style="padding-right: 10px;">
+                          <img src="/logo.png" alt="\${brandName}" width="36" height="36" style="display: block; width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e2e8f0; object-fit: contain;" onerror="this.onerror=null;this.src='/logo.jpg';" />
+                        </td>
+                        <td valign="middle">
+                          <span style="font-size: 17px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; display: block;">
+                            \${brandName}
+                          </span>
+                          <span style="display: block; font-size: 10px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 1px;">
+                            Enterprise Intelligent Mail
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" valign="middle">
+                    <span style="display: inline-block; padding: 3px 8px; background-color: #eff6ff; color: \${primaryColor}; border-radius: 16px; font-size: 10px; font-weight: 600;">
+                      Verified Dispatch
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 22px 24px; font-size: 14px; line-height: 1.6; color: #334155;">
+              \${data.recipientName ? \`<p style="margin: 0 0 14px 0; font-weight: 600; color: #0f172a; font-size: 14px;">Dear \${data.recipientName},</p>\` : ''}
+              \${formattedBody}
+              \${ctaButton}
+              
+              <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #f1f5f9;">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation">
+                  <tr>
+                    <td style="vertical-align: top; padding-right: 12px;">
+                      <img src="/logo.png" alt="\${senderName}" width="38" height="38" style="width: 38px; height: 38px; border-radius: 50%; border: 1px solid #cbd5e1; display: block; object-fit: contain;" onerror="this.onerror=null;this.src='/logo.jpg';" />
+                    </td>
+                    <td style="vertical-align: middle;">
+                      <div style="font-weight: 700; font-size: 13px; color: #0f172a;">\${senderName}</div>
+                      <div style="font-size: 11px; color: #64748b; line-height: 1.4;">\${senderTitle}</div>
+                      <div style="font-size: 11px; color: \${primaryColor}; font-weight: 500;">
+                        \${senderEmail} &bull; \${website}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8fafc; padding: 16px 24px; border-top: 1px solid #f1f5f9; text-align: center;">
+              <p style="margin: 0 0 4px 0; font-size: 11px; color: #64748b;">
+                &copy; \${new Date().getFullYear()} \${brandName} Technologies. All rights reserved.
+              </p>
+              <p style="margin: 0; font-size: 10px; color: #94a3b8; line-height: 1.4;">
+                \${location}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>\`;
+    }
+
+    function updateCampaignLivePreview() {
+      const frame = document.getElementById('campaign-live-frame');
+      if (!frame) return;
+
+      const subjectEl = document.getElementById('campaign-subject');
+      const bodyEl = document.getElementById('campaign-body');
+      const ctaTextEl = document.getElementById('campaign-cta-text');
+      const ctaUrlEl = document.getElementById('campaign-cta-url');
+      const selectEl = document.getElementById('campaign-preview-contact-select');
+
+      const subject = subjectEl ? subjectEl.value : '';
+      const body = bodyEl ? bodyEl.value : '';
+      const ctaText = ctaTextEl ? ctaTextEl.value : '';
+      const ctaUrl = ctaUrlEl ? ctaUrlEl.value : '';
+
+      let contact = null;
+      if (selectEl && selectEl.value && appState && appState.contacts) {
+        contact = appState.contacts.find(c => c.id === selectEl.value || c.email === selectEl.value);
+      }
+      if (!contact && appState && appState.contacts && appState.contacts.length > 0) {
+        contact = appState.contacts[0];
+      }
+
+      const recName = contact ? contact.name : 'Alex Morgan';
+      const recCompany = contact ? contact.company : 'SchoolHub Academy';
+
+      let renderedBody = body || 'Enter your message in the editor on the left to see your live preview update instantly. Use tags like {{name}} and {{company}} for automated personalization.';
+      renderedBody = renderedBody.replace(/{{name}}/g, recName).replace(/{{company}}/g, recCompany);
+
+      const renderedSubject = (subject || 'Corporate Announcement').replace(/{{name}}/g, recName).replace(/{{company}}/g, recCompany);
+
+      frame.srcdoc = buildCorporatePreviewHtml({
+        subject: renderedSubject,
+        bodyContent: renderedBody,
+        ctaText: ctaText,
+        ctaUrl: ctaUrl,
+        recipientName: recName
+      });
+    }
+
     function renderContacts() {
       const table = document.getElementById('contacts-table-body');
       const badge = document.getElementById('badge-contacts-count');
       const label = document.getElementById('csv-loaded-count');
+      const previewSelect = document.getElementById('campaign-preview-contact-select');
 
       badge.innerText = appState.contacts.length;
       label.innerText = appState.contacts.length + ' Contacts';
 
+      if (previewSelect) {
+        if (!appState.contacts.length) {
+          previewSelect.innerHTML = '<option value="">Alex Morgan (SchoolHub Academy)</option>';
+        } else {
+          previewSelect.innerHTML = appState.contacts.map((c, i) => \`
+            <option value="\${c.id}">\${c.name} (\${c.company || 'Partner'})\${i === 0 ? ' [Default]' : ''}</option>
+          \`).join('');
+        }
+      }
+
       if (!appState.contacts.length) {
         table.innerHTML = '<div class="p-4 text-center text-xs text-slate-400">No contacts loaded.</div>';
+        updateCampaignLivePreview();
         return;
       }
 
@@ -820,6 +1139,8 @@ function renderCorporateUi(req) {
           <span class="text-[10px] font-mono text-slate-500">\${c.role}</span>
         </div>
       \`).join('');
+
+      updateCampaignLivePreview();
     }
 
     async function clearContacts() {
@@ -846,6 +1167,7 @@ function renderCorporateUi(req) {
 
       document.getElementById('campaign-subject').value = data.subject;
       document.getElementById('campaign-body').value = data.body;
+      updateCampaignLivePreview();
     }
 
     async function sendBulkCampaign() {
@@ -1071,6 +1393,7 @@ function renderCorporateUi(req) {
         switchTab(tabParam);
       }
       await loadState();
+      updateCampaignLivePreview();
       // Auto-sync real emails if authenticated
       await syncGmail();
     });
@@ -1113,6 +1436,23 @@ async function handleRequest(req, res) {
       });
       return res.end(img);
     }
+  }
+
+  // Static Sample Contacts CSV Download
+  if (pathname === '/api/campaigns/sample-csv' || pathname === '/sample_contacts.csv') {
+    const csvPath = path.join(__dirname, 'public', 'sample_contacts.csv');
+    let csvData = '';
+    if (fs.existsSync(csvPath)) {
+      csvData = fs.readFileSync(csvPath, 'utf8');
+    } else {
+      csvData = "email,name,company,role\nalex.morgan@schoolhub.edu,Alex Morgan,SchoolHub Academy,Academic Director\nsarah.chen@edulearn.org,Sarah Chen,EduLearn Global,Curriculum Coordinator\ndavid.kim@innovateedu.com,David Kim,InnovateEdu Institute,Head of Technology\nelena.rostova@globalstem.ac,Elena Rostova,Global STEM Initiative,Partnerships Lead\nmichael.brown@edutechpartners.com,Michael Brown,EdTech Partners,Director of Operations\n";
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="sample_contacts.csv"',
+      'Cache-Control': 'public, max-age=86400'
+    });
+    return res.end(csvData);
   }
 
   // 1. Health
