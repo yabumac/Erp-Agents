@@ -758,16 +758,14 @@ function renderCorporateUi(req) {
       const isHtml = /<[a-z][\s\S]*>/i.test(rawContent);
       if (statusLabel) statusLabel.innerText = isHtml ? 'Visual Render' : 'Plain Text';
 
-      if (isHtml) {
-        const baseStyle = \`
-          <style>
-            html, body { margin: 0; padding: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #1e293b; background: #ffffff; word-break: break-word; }
-            img { max-width: 100% !important; height: auto !important; }
-            table { max-width: 100% !important; }
-            a { color: #1d4ed8; text-decoration: underline; }
-          </style>
-        \`;
+      const baseStyle = '<style>' +
+        'html, body { margin: 0; padding: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #1e293b; background: #ffffff; word-break: break-word; }' +
+        'img { max-width: 100% !important; height: auto !important; }' +
+        'table { max-width: 100% !important; }' +
+        'a { color: #1d4ed8; text-decoration: underline; }' +
+        '</style>';
 
+      if (isHtml) {
         let html = rawContent;
         if (/<head[\s>]/i.test(html)) {
           html = html.replace(/<head[\s>]/i, match => match + baseStyle);
@@ -782,17 +780,9 @@ function renderCorporateUi(req) {
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;');
-        frame.srcdoc = \`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <style>
-              body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #334155; white-space: pre-wrap; word-break: break-word; background: #ffffff; }
-            </style>
-          </head>
-          <body>\${escaped}</body>
-          </html>
-        \`;
+        frame.srcdoc = '<!DOCTYPE html><html><head><style>' +
+          'body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #334155; white-space: pre-wrap; word-break: break-word; background: #ffffff; }' +
+          '</style></head><body>' + escaped + '</body></html>';
       }
     }
 
@@ -924,29 +914,7 @@ function renderCorporateUi(req) {
     }
 
     function downloadSampleCsv() {
-      const sampleText = "email,name,company,role\n" +
-        "alex.morgan@schoolhub.edu,Alex Morgan,SchoolHub Academy,Academic Director\n" +
-        "sarah.chen@edulearn.org,Sarah Chen,EduLearn Global,Curriculum Coordinator\n" +
-        "david.kim@innovateedu.com,David Kim,InnovateEdu Institute,Head of Technology\n" +
-        "elena.rostova@globalstem.ac,Elena Rostova,Global STEM Initiative,Partnerships Lead\n" +
-        "michael.brown@edutechpartners.com,Michael Brown,EdTech Partners,Director of Operations\n";
-
-      try {
-        const blob = new Blob([sampleText], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'sample_contacts.csv';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        }, 150);
-      } catch (err) {
-        window.location.href = '/api/campaigns/sample-csv';
-      }
+      window.location.href = '/api/campaigns/sample-csv';
     }
 
     function buildCorporatePreviewHtml(data) {
@@ -960,9 +928,11 @@ function renderCorporateUi(req) {
 
       let formattedBody = data.bodyContent || 'Your campaign message will appear here...';
       if (!formattedBody.includes('<p>') && !formattedBody.includes('<div>')) {
+        const doubleBreak = String.fromCharCode(10) + String.fromCharCode(10);
+        const singleBreak = new RegExp(String.fromCharCode(10), 'g');
         formattedBody = formattedBody
-          .split('\n\n')
-          .map(p => '<p style="margin: 0 0 16px 0; line-height: 1.6; color: #334155; font-size: 14px;">' + p.replace(/\n/g, '<br>') + '</p>')
+          .split(doubleBreak)
+          .map(p => '<p style="margin: 0 0 16px 0; line-height: 1.6; color: #334155; font-size: 14px;">' + p.replace(singleBreak, '<br>') + '</p>')
           .join('');
       }
 
