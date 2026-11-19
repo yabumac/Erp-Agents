@@ -20,6 +20,10 @@ const BrandConfig = require('./config/brand');
 const Storage = require('./lib/storage');
 const AI = require('./lib/ai');
 const Gmail = require('./lib/gmail');
+const Db = require('./lib/db');
+const Voice = require('./lib/voice');
+const VoiceUi = require('./lib/voice-ui');
+const VoiceClient = require('./lib/voice-client');
 
 const PORT = process.env.PORT || 3002;
 
@@ -159,7 +163,12 @@ function renderCorporateUi(req) {
 
       <!-- Navigation -->
       <nav class="p-3 space-y-1">
-        <button onclick="switchTab('inbox')" id="nav-inbox" class="w-full flex items-center justify-between px-3 py-2 rounded-lg tab-active hover:bg-slate-100 transition text-left">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center justify-between px-3 py-2 rounded-lg tab-active hover:bg-slate-100 transition text-left">
+          <span class="font-medium text-xs">Dashboard</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">LIVE</span>
+        </button>
+
+        <button onclick="switchTab('inbox')" id="nav-inbox" class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
           <span class="font-medium text-xs">Inbox & Triage</span>
           <span class="text-xs font-mono font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-800" id="badge-inbox-count">${initialThreads.length}</span>
         </button>
@@ -167,6 +176,11 @@ function renderCorporateUi(req) {
         <button onclick="switchTab('campaigns')" id="nav-campaigns" class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
           <span class="font-medium text-xs">Bulk Campaigns</span>
           <span class="text-xs font-mono text-slate-400" id="badge-contacts-count">${initialContacts.length}</span>
+        </button>
+
+        <button onclick="switchTab('voice')" id="nav-voice" class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
+          <span class="font-medium text-xs">Voice Agent</span>
+          <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700" id="badge-voice-count">Active</span>
         </button>
 
         <button onclick="switchTab('compose')" id="nav-compose" class="w-full flex items-center px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition text-left">
@@ -197,7 +211,7 @@ function renderCorporateUi(req) {
     <!-- Top Action Bar -->
     <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10">
       <div class="flex items-center space-x-3">
-        <span class="font-bold text-slate-800 text-sm" id="header-view-title">Inbox & Triage</span>
+        <span class="font-bold text-slate-800 text-sm" id="header-view-title">Operations Dashboard</span>
         <span class="text-slate-300">/</span>
         <span class="text-xs text-slate-500">${auth.email || 'yabutech47@gmail.com'}</span>
       </div>
@@ -214,8 +228,10 @@ function renderCorporateUi(req) {
 
     <div class="p-6 max-w-7xl mx-auto w-full">
 
+      ${VoiceUi.renderDashboardSection({}, initialThreads.length, initialContacts.length, initialSent.length)}
+
       <!-- ================= 1. INBOX TAB ================= -->
-      <section id="tab-inbox" class="space-y-4">
+      <section id="tab-inbox" class="hidden space-y-4">
         
         <!-- Connection Banner if Google Not Authorized Yet -->
         <div id="google-auth-banner" class="${isGoogleConnected ? 'hidden' : ''} bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
@@ -485,6 +501,8 @@ function renderCorporateUi(req) {
         </div>
       </section>
 
+      ${VoiceUi.renderVoiceSection()}
+
       <!-- ================= 3. COMPOSE EMAIL TAB ================= -->
       <section id="tab-compose" class="hidden space-y-6">
         <div>
@@ -608,6 +626,20 @@ function renderCorporateUi(req) {
               }
             </div>
           </div>
+
+          <div class="space-y-2 border-t border-slate-100 pt-4">
+            <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Database & Memory Persistence</h3>
+            <p class="text-xs text-slate-500">Persistent storage engine for voice campaigns, Ethiopian contact lists, and call tracking.</p>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">Active Database Provider:</span>
+                <span class="font-mono font-bold text-slate-800" id="settings-db-status">Persistent Storage Active</span>
+              </div>
+              <p class="text-[11px] text-slate-500">
+                To connect a cloud PostgreSQL database on Vercel (Neon, Supabase, Vercel Postgres), add the <code class="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-800">DATABASE_URL</code> or <code class="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-800">POSTGRES_URL</code> environment variable in your Vercel Project Settings.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -663,7 +695,7 @@ function renderCorporateUi(req) {
     let activeThread = null;
 
     function switchTab(tabId) {
-      ['inbox', 'campaigns', 'compose', 'sent', 'settings'].forEach(t => {
+      ['dashboard', 'inbox', 'campaigns', 'voice', 'compose', 'sent', 'settings'].forEach(t => {
         const el = document.getElementById('tab-' + t);
         const nav = document.getElementById('nav-' + t);
         if (el) el.classList.add('hidden');
@@ -675,16 +707,22 @@ function renderCorporateUi(req) {
       if (activeNav) activeNav.classList.add('tab-active');
 
       const titles = {
+        dashboard: 'Operations Dashboard',
         inbox: 'Inbox & Triage',
         campaigns: 'Bulk Campaigns',
+        voice: 'Voice Agent & Automated Calling',
         compose: 'Compose Email',
         sent: 'Sent Log',
         settings: 'Settings & Integration'
       };
-      document.getElementById('header-view-title').innerText = titles[tabId] || 'Mail Platform';
+      document.getElementById('header-view-title').innerText = titles[tabId] || 'Corporate Platform';
 
       if (tabId === 'campaigns') {
         setTimeout(updateCampaignLivePreview, 50);
+      } else if (tabId === 'voice') {
+        loadVoiceState();
+      } else if (tabId === 'dashboard') {
+        loadDashboardStats();
       }
     }
 
@@ -1356,13 +1394,19 @@ function renderCorporateUi(req) {
       await checkAuthStatus();
     }
 
+    ${VoiceClient.getVoiceClientScript()}
+
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      if (tabParam && ['inbox', 'campaigns', 'compose', 'sent', 'settings'].includes(tabParam)) {
+      if (tabParam && ['dashboard', 'inbox', 'campaigns', 'voice', 'compose', 'sent', 'settings'].includes(tabParam)) {
         switchTab(tabParam);
+      } else {
+        switchTab('dashboard');
       }
       await loadState();
+      await loadDashboardStats();
+      await loadVoiceState();
       updateCampaignLivePreview();
       // Auto-sync real emails if authenticated
       await syncGmail();
@@ -1423,6 +1467,222 @@ async function handleRequest(req, res) {
       'Cache-Control': 'public, max-age=86400'
     });
     return res.end(csvData);
+  }
+
+  // Static Sample Voice Contacts CSV Download (Ethiopian Phone Numbers)
+  if (pathname === '/api/voice/sample-contacts-csv' || pathname === '/sample_voice_contacts.csv') {
+    const csvPath = path.join(__dirname, 'public', 'sample_voice_contacts.csv');
+    let csvData = '';
+    if (fs.existsSync(csvPath)) {
+      csvData = fs.readFileSync(csvPath, 'utf8');
+    } else {
+      csvData = "phone,name,role,notes\n+251911223344,Abebe Kebede,Software Trainee,Addis Ababa Bole Campus\n+251912345678,Bethlehem Tadesse,Data Science Student,AAiT Tech Hub\n+251920556677,Dawit Haile,Cloud Engineering Fellow,Hawassa Campus\n+251930778899,Meron Girma,Trainee,Addis Ababa 4 Kilo\n+251944112233,Yohannes Bekele,AI Ethics Trainee,Adama Campus\n";
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="sample_voice_contacts.csv"',
+      'Cache-Control': 'public, max-age=86400'
+    });
+    return res.end(csvData);
+  }
+
+  // Audio Static Stream Route
+  if (pathname.startsWith('/audio/')) {
+    const fileName = path.basename(pathname);
+    const audioPath = path.join(__dirname, 'public', 'audio', fileName);
+    if (fs.existsSync(audioPath)) {
+      const audioData = fs.readFileSync(audioPath);
+      const isWav = fileName.endsWith('.wav');
+      res.writeHead(200, {
+        'Content-Type': isWav ? 'audio/wav' : 'audio/mpeg',
+        'Cache-Control': 'public, max-age=86400'
+      });
+      return res.end(audioData);
+    }
+  }
+
+  // Database Connection Health & Status
+  if (pathname === '/api/db/status') {
+    const status = await Db.getDbStatus();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(status));
+  }
+
+  // Dashboard Telemetry & Stats
+  if (pathname === '/api/dashboard/stats') {
+    const stats = await Db.getDashboardStats();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(stats));
+  }
+
+  // Live Activity Feed
+  if (pathname === '/api/activity') {
+    const activity = await Db.getActivityFeed(30);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(activity));
+  }
+
+  // Voice Contact Lists (GET / POST)
+  if (pathname === '/api/voice/lists') {
+    if (method === 'GET') {
+      const lists = await Db.getContactLists();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(lists));
+    }
+    if (method === 'POST') {
+      const body = await parseBody(req);
+      const result = await Db.createContactList(body.name || 'New Contact List', body.description || '', body.contacts || []);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(result));
+    }
+  }
+
+  // Voice Contacts (GET / POST)
+  if (pathname === '/api/voice/contacts') {
+    if (method === 'GET') {
+      const contacts = await Db.getContacts(query.listId || null);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(contacts));
+    }
+    if (method === 'POST') {
+      const body = await parseBody(req);
+      const contact = await Db.addContact(body);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(contact));
+    }
+  }
+
+  // Voice CSV Upload
+  if (pathname === '/api/voice/upload-csv' && method === 'POST') {
+    const body = await parseBody(req);
+    const text = body.csvContent || '';
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+    const parsedContacts = [];
+    if (lines.length > 1) {
+      const headerLine = lines[0].toLowerCase();
+      const hasHeader = headerLine.includes('phone') || headerLine.includes('name');
+      const startIdx = hasHeader ? 1 : 0;
+      for (let i = startIdx; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
+        if (parts[0]) {
+          parsedContacts.push({
+            phone: parts[0],
+            name: parts[1] || 'Contact ' + (i + 1),
+            role: parts[2] || 'Trainee',
+            notes: parts[3] || ''
+          });
+        }
+      }
+    }
+    const listName = body.listName || 'Imported Ethiopian List (' + new Date().toLocaleDateString() + ')';
+    const result = await Db.createContactList(listName, 'Uploaded CSV Contact List', parsedContacts);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
+  // Voice Recordings (GET / POST)
+  if (pathname === '/api/voice/recordings') {
+    if (method === 'GET') {
+      const recs = await Db.getRecordings();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(recs));
+    }
+    if (method === 'POST') {
+      const body = await parseBody(req);
+      const rec = await Db.addRecording(body);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(rec));
+    }
+  }
+
+  // Specific Audio Stream / Base64 Route
+  if (pathname.startsWith('/api/voice/audio/')) {
+    const recId = pathname.replace('/api/voice/audio/', '');
+    const recs = await Db.getRecordings();
+    const rec = recs.find(r => r.id === recId);
+    if (rec && rec.audioBase64) {
+      const matches = rec.audioBase64.match(/^data:(.+?);base64,(.+)$/);
+      if (matches) {
+        const mime = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'public, max-age=86400' });
+        return res.end(buffer);
+      }
+    }
+    // Fallback to sample WAV
+    const defaultWav = path.join(__dirname, 'public', 'audio', 'voice_reminder_course.wav');
+    if (fs.existsSync(defaultWav)) {
+      res.writeHead(200, { 'Content-Type': 'audio/wav', 'Cache-Control': 'public, max-age=86400' });
+      return res.end(fs.readFileSync(defaultWav));
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    return res.end('Audio not found');
+  }
+
+  // Voice Campaigns List
+  if (pathname === '/api/voice/campaigns') {
+    const campaigns = await Db.getCampaigns();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(campaigns));
+  }
+
+  // Start Bulk Voice Campaign
+  if (pathname === '/api/voice/campaigns/start' && method === 'POST') {
+    const body = await parseBody(req);
+    const result = await Voice.startBulkVoiceCampaign(body);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
+  // Place Single Voice Call
+  if (pathname === '/api/voice/call-single' && method === 'POST') {
+    const body = await parseBody(req);
+    const result = await Voice.dispatchSingleCall(body);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
+  // Recall Unanswered / Missed Contacts
+  if (pathname === '/api/voice/recall-unanswered' && method === 'POST') {
+    const body = await parseBody(req);
+    const result = await Voice.retryUnansweredCalls(body.campaignId);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
+  // Voice Call Logs
+  if (pathname === '/api/voice/call-logs') {
+    const logs = await Db.getCallLogs(query.campaignId || null);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(logs));
+  }
+
+  // Voice Spreadsheet CSV Export
+  if (pathname === '/api/voice/export-csv') {
+    const logs = await Db.getCallLogs(query.campaignId || null);
+    const csvContent = Db.exportCallLogsCsv(logs);
+    res.writeHead(200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="voice_campaign_results_' + Date.now() + '.csv"',
+      'Cache-Control': 'no-cache'
+    });
+    return res.end(csvContent);
+  }
+
+  // Twilio TwiML Serving Route
+  if (pathname === '/api/voice/twiml') {
+    const recId = query.recId || 'rec-course-complete';
+    const host = (req.headers && req.headers.host) ? req.headers.host : 'erp-agents.vercel.app';
+    const proto = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
+    const twiml = Voice.getTwiml(recId, `${proto}://${host}`);
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+    return res.end(twiml);
+  }
+
+  // Twilio Status Webhook Callback
+  if (pathname === '/api/voice/status-callback' && method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'text/xml' });
+    return res.end('<Response></Response>');
   }
 
   // 1. Health
