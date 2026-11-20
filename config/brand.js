@@ -14,7 +14,7 @@ const BrandConfig = {
   accentColor: '#0284c7',  // Sky Accent
   website: 'https://edtechhub.et',
   location: 'Addis Ababa, Ethiopia',
-  phone: '+251 91 123 4567',
+  phone: '+251 711705055',
 
   /**
    * Generates a corporate-grade, responsive HTML email matching top enterprise standards.
