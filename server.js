@@ -640,6 +640,32 @@ function renderCorporateUi(req) {
               </p>
             </div>
           </div>
+
+          <div class="space-y-2 border-t border-slate-100 pt-4">
+            <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Free Voice Telephony & Broadcast Gateway</h3>
+            <p class="text-xs text-slate-500">100% Free Voice Engine with zero required Twilio subscriptions, zero carrier charges, and persistent call tracking.</p>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">Voice Gateway Status:</span>
+                <span class="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Free Voice Engine ($0 Active)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">Default Caller ID:</span>
+                <span class="font-mono font-bold text-blue-800">+251 711705055 (EdTechHub Corporate Dispatch)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">Interactive Receiver:</span>
+                <span class="font-mono text-slate-700">Web Audio Ringtone + Live Message Player</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">Standalone Mobile Receiver:</span>
+                <a href="/call?to=251711705055&name=Yabsera&rec=rec-course-complete" target="_blank" class="font-mono text-blue-700 hover:underline">/call (Open Receiver)</a>
+              </div>
+              <p class="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
+                Outbound voice calls to trainees and staff operate with zero paid subscriptions. When dialed, recipients experience real-time ringing, audio playback, and automated hangup via the in-app interactive modal or standalone mobile link.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -2014,6 +2040,13 @@ async function handleRequest(req, res) {
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ html }));
+  }
+
+  // 16b. Standalone Mobile Voice Call Receiver (100% Free)
+  if (pathname === '/call' || pathname === '/call.html') {
+    const html = VoiceUi.renderMobileCallPage(query);
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(html);
   }
 
   // 17. Root View
