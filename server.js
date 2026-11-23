@@ -642,28 +642,33 @@ function renderCorporateUi(req) {
           </div>
 
           <div class="space-y-2 border-t border-slate-100 pt-4">
-            <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Free Voice Telephony & Broadcast Gateway</h3>
-            <p class="text-xs text-slate-500">100% Free Voice Engine with zero required Twilio subscriptions, zero carrier charges, and persistent call tracking.</p>
-            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
+            <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">Telephony & Outbound Calling Gateway</h3>
+            <p class="text-xs text-slate-500">Choose between the 100% Free Web/Mobile Voice Engine ($0) or an external telecom carrier gateway.</p>
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs space-y-3">
               <div class="flex items-center justify-between">
-                <span class="text-slate-600 font-medium">Voice Gateway Status:</span>
+                <span class="text-slate-600 font-medium">Active Calling Gateway:</span>
                 <span class="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Free Voice Engine ($0 Active)</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-slate-600 font-medium">Default Caller ID:</span>
+                <span class="text-slate-600 font-medium">Verified Caller ID:</span>
                 <span class="font-mono font-bold text-blue-800">+251 711705055 (EdTechHub Corporate Dispatch)</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-slate-600 font-medium">Interactive Receiver:</span>
-                <span class="font-mono text-slate-700">Web Audio Ringtone + Live Message Player</span>
+                <span class="text-slate-600 font-medium">In-App Ringtone Receiver:</span>
+                <span class="font-mono text-slate-700">Loud Telephony Dual-Tone &bull; /audio/phone_ring.wav</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-slate-600 font-medium">Standalone Mobile Receiver:</span>
-                <a href="/call?to=251711705055&name=Yabsera&rec=rec-course-complete" target="_blank" class="font-mono text-blue-700 hover:underline">/call (Open Receiver)</a>
+                <a href="/call?to=251711705055&name=Yabsera&rec=rec-course-complete" target="_blank" class="font-mono text-blue-700 hover:underline">/call (Open Standalone Link)</a>
               </div>
-              <p class="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
-                Outbound voice calls to trainees and staff operate with zero paid subscriptions. When dialed, recipients experience real-time ringing, audio playback, and automated hangup via the in-app interactive modal or standalone mobile link.
-              </p>
+              
+              <div class="pt-2 border-t border-slate-200 space-y-2">
+                <p class="font-semibold text-slate-800">How Outbound Calling Works:</p>
+                <ul class="list-disc list-inside text-slate-600 space-y-1 text-[11px]">
+                  <li><strong>Free Web &amp; Mobile Engine ($0 Active):</strong> Rings through the in-app receiver modal with realistic loud dual-tone telephony ringing and auto-plays voice messages. Trainees can also open the mobile link (/call) on any smartphone. No carrier accounts or fees required.</li>
+                  <li><strong>Real Cellular Network Dialing (Optional):</strong> To physically ring basic non-internet mobile phones across Ethio Telecom or Safaricom cellular towers, configure a Twilio Free Trial account ($15 free credit, no credit card needed). Once configured, outbound calls route directly through telecom base stations.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -1703,6 +1708,21 @@ async function handleRequest(req, res) {
     const twiml = Voice.getTwiml(recId, `${proto}://${host}`);
     res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
     return res.end(twiml);
+  }
+
+  // Telephony & Voice Gateway Settings
+  if (pathname === '/api/voice/settings') {
+    if (method === 'GET') {
+      const settings = await Db.getTelephonySettings();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(settings));
+    }
+    if (method === 'POST') {
+      const body = await parseBody(req);
+      const updated = await Db.saveTelephonySettings(body);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ success: true, settings: updated }));
+    }
   }
 
   // Twilio Status Webhook Callback
