@@ -2069,6 +2069,46 @@ async function handleRequest(req, res) {
     return res.end(html);
   }
 
+  // 16c. Android GSM SIM Gateway Runner Page
+  if (pathname === '/gateway' || pathname === '/android' || pathname === '/gateway.html') {
+    const html = VoiceUi.renderAndroidGatewayPage();
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(html);
+  }
+
+  // Android Gateway APIs
+  if (pathname === '/api/gateway/status') {
+    const status = await Db.getGatewayStatus();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(status));
+  }
+
+  if (pathname === '/api/gateway/ping' && method === 'POST') {
+    const body = await parseBody(req);
+    const result = await Db.pingGatewayDevice(body);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
+  if (pathname === '/api/gateway/poll') {
+    const task = await Db.getNextPendingGatewayCall();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(task || {}));
+  }
+
+  if (pathname === '/api/gateway/complete' && method === 'POST') {
+    const body = await parseBody(req);
+    const result = await Db.completeGatewayCall(body.taskId, body);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
+  if (pathname === '/api/gateway/clear' && method === 'POST') {
+    const result = await Db.clearGatewayQueue();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
   // 17. Root View
   if (pathname === '/' || pathname === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
